@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+	<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+	<title>To Do App</title>
+	<style type="text/css">
+
+		html,body { 
+			height: 100%; 
+			margin: 0px; 
+			padding: 0px; 
+			}
+		.main{
+			width: 600px; 
+			height: 100%; 
+			background-image: url('https://www.elsetge.cat/myimg/f/89-894359_making-a-slick-mobileapp-website-with-jquery-css.jpg');
+			background-repeat: no-repeat;
+			background-size: cover;
+			padding-top: 20px;
+			}
+    </style>
+</head>
+<body style="background-color: #659DBD; color: rgb(240,240,240);">	
+	<div class="container main">
+		<div class="row">
+			<h1 class="display-4 col text-center font-weight-bold">To Do's</h1>
+		</div>
+		<div class="row p-2">
+			<div class="input-group">
+				<input class="form-control" type="text" placeholder="What do we want to do?" aria-label="What do we want to do?" aria-describedby="basic-addon2" id="todoTask">
+				<div class="input-group-append">
+					<input class="w-100 btn btn-light" type="submit" value="Add">
+				</div>
+			</div>
+		</div>
+			<ul class="list-unstyled">
+				<li>
+					<div class="input-group mb-3">
+						<div class="input-group-prepend">
+							<div class="input-group-text">
+							  <input type="checkbox" aria-label="Checkbox for following text input">
+							</div>
+						</div>
+						<label class="form-control">Eat</label>
+						<div class="input-group-append">
+							<input class="w-100 btn btn-secondary" type="submit" value="Delete">
+						</div>
+					</div>
+				</li>
+				<li>
+					<div class="input-group mb-3">
+						<div class="input-group-prepend">
+							<div class="input-group-text">
+							  <input type="checkbox" aria-label="Checkbox for following text input">
+							</div>
+						</div>
+						<label class="form-control">Jump</label>
+						<div class="input-group-append">
+							<input class="w-100 btn btn-secondary" type="submit" value="Delete">
+						</div>
+					</div>
+				</li>
+			</ul>
+		</div>
+	</div>
+</body>
+</html>
