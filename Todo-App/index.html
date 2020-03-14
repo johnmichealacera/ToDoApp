@@ -8,33 +8,22 @@
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
 	<title>To Do App</title>
 </head>
-<body style="background-color: #659DBD; color: rgb(240,240,240);">	
+<body style="background-color: #659DBD; color: rgb(240,240,240);" onload=loadData()>	
 	<div class="container main">
 		<div class="row">
 			<h1 class="display-4 col text-center font-weight-bold">To Do's</h1>
 		</div>
+		<div class="alert alert-info text-right display-6" role="alert" id="taskData">
+		</div>
 		<div class="row p-2 mb-4">
 			<div class="input-group">
-				<input class="form-control" type="text" placeholder="What do we want to do?" aria-label="What do we want to do?" aria-describedby="basic-addon2" id="inpTodo">
+				<input class="form-control" type="text" style="border-radius: 15px 0 0 15px;" placeholder="What do we want to do?" aria-label="What do we want to do?" aria-describedby="basic-addon2" id="inpTodo">
 				<div class="input-group-append">
-					<input class="w-100 btn btn-light" type="submit" value="Add" id="btnTodo">
+					<input class="w-100 btn btn-secondary" style="border-radius: 0 15px 15px 0;" type="submit" value="Add Task" id="btnTodo">
 				</div>
 			</div>
 		</div>
 			<ul class="list-unstyled" id="listTodo">
-				<li>
-					<div class="input-group mb-3">
-						<div class="input-group-prepend">
-							<div class="input-group-text">
-							  <input type="checkbox">
-							</div>
-						</div>
-						<label class="form-control">Eat</label>
-						<div class="input-group-append">
-							<input class="w-100 btn btn-secondary" type="submit" value="Delete">
-						</div>
-					</div>
-				</li>
 			</ul>
 		</div>
 	</div>
