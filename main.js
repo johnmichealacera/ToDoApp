@@ -1,6 +1,8 @@
 const express = require('express');
 const app = express();
 
+let port = process.env.PORT | 8000;
+
 app.set('view engine','ejs');
 
 app.use(express.static('public'));
@@ -11,5 +13,5 @@ app.get('/', (req,res)=>{
 
 app.listen(8000, (err)=>{
     if(err) throw err;
-    console.log('To do app running on port 8000');
+    console.log('To do app running on port '+port);
 });
