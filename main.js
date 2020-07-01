@@ -11,7 +11,7 @@ app.get('/', (req,res)=>{
     res.render('home');
 });
 
-app.listen(8000, (err)=>{
+app.listen(port, (err)=>{
     if(err) throw err;
     console.log('To do app running on port '+port);
 });
