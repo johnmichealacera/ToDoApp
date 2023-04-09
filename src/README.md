@@ -9,7 +9,7 @@
 
 ### **How to Run the App**
 1. Clone this repository using the command below:
-git clone https://github.com/your-username/todo-app.git
+git clone git@github.com:johnmichealacera/ToDoApp.git
 2. Install PHP on your computer, if it is not already installed.
 3. Run the following command to start a PHP server:
 php -S localhost:8000
