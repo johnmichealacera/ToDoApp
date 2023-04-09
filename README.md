@@ -10,11 +10,14 @@
 ### **How to Run the App**
 1. Clone this repository using the command below:
 
-`git clone git@github.com:johnmichealacera/ToDoApp.git`
+* `git clone git@github.com:johnmichealacera/ToDoApp.git`
+
 2. Install PHP on your computer, if it is not already installed.
+
 3. Run the following command to start a PHP server:
 
-`php -S localhost:8000`
+* `php -S localhost:8000`
+
 4. Open your web browser and go to http://localhost:8000 to view the app.
 
 ### **Usage**
