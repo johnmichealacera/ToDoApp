@@ -1,5 +1,5 @@
 # **Vanilla JavaScript ToDo App**
-## This is a simple ToDo app created using vanilla JavaScript. It can be run using PHP as the index.html file is included in the index.php file. Or you can simply open the index.html file in your desired browser.
+This is a simple ToDo app created using vanilla JavaScript. It can be run using PHP as the index.html file is included in the index.php file. Or you can simply open the index.html file in your desired browser.
 
 ### **Features**
 - Add new tasks
