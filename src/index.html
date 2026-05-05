@@ -1,24 +1,61 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-	<link rel="stylesheet" href="style.css">
-	<title>Taskify</title>
-	<link rel="icon" href="todo-icon.png">
+	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="description" content="Taskify — a calm, focused task list. Add, complete, edit, and delete tasks with local persistence.">
+	<title>Taskify</title>
+	<link rel="icon" href="favicon.svg" type="image/svg+xml">
+	<link rel="stylesheet" href="style.css">
 </head>
-<body onload=loadData()>	
-	<div class="main">
-		<h1>Taskify</h1>
-		<div id="taskData">
+<body>
+	<div class="page-gradient" aria-hidden="true"></div>
+	<main class="main">
+		<header class="app-header">
+			<div class="brand">
+				<h1 class="app-title">Taskify</h1>
+				<p class="app-tagline">Your day, one task at a time.</p>
+			</div>
+			<button type="button" class="theme-toggle" id="themeToggle" aria-label="Switch color theme" title="Theme">
+				<span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true">☀</span>
+				<span class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true">☽</span>
+			</button>
+		</header>
+
+		<section class="stats-panel" id="taskData" role="status" aria-live="polite">
+			<span class="stats-panel__text">No tasks yet.</span>
+		</section>
+
+		<p class="feedback" id="taskFeedback" role="alert" aria-live="assertive" hidden></p>
+
+		<form class="add-task" id="addTaskForm" novalidate>
+			<label class="visually-hidden" for="inpTodo">New task</label>
+			<input
+				class="form-control form-control--grow"
+				type="text"
+				name="task"
+				id="inpTodo"
+				placeholder="What do you plan to do?"
+				autocomplete="off"
+				maxlength="500"
+				aria-describedby="hint-shortcuts"
+			>
+			<button type="submit" class="btn btn-primary" id="btnTodo">Add task</button>
+		</form>
+		<p id="hint-shortcuts" class="form-hint">Press <kbd>Enter</kbd> to add. Double-click a task to rename.</p>
+
+		<div class="list-shell">
+			<ul class="task-list list-unstyled" id="listTodo"></ul>
+			<div class="empty-state" id="emptyState" hidden>
+				<p class="empty-state__title">Nothing here yet</p>
+				<p class="empty-state__body">Add something small above — momentum builds from the first checkbox.</p>
+			</div>
 		</div>
-		<div class="add-task">
-			<input class="form-control" type="text" style="border-radius: 15px 0 0 15px;" placeholder="What do you plan to do?" aria-label="What do you plan to do?" aria-describedby="basic-addon2" id="inpTodo">
-			<input style="border-radius: 0 15px 15px 0;" type="submit" value="Add Task" id="btnTodo">
-		</div>
-		<ul class="list-unstyled" id="listTodo">
-		</ul>
-		</div>
-	</div>
+
+		<footer class="app-footer">
+			<button type="button" class="btn btn-ghost btn-sm" id="clearCompleted" hidden>Clear completed</button>
+		</footer>
+	</main>
+	<script src="app.js"></script>
 </body>
 </html>
-<script src="app.js"></script>

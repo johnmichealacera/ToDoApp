@@ -1,129 +1,309 @@
-let inpTodo = document.getElementById('inpTodo');
-let btnTodo = document.getElementById('btnTodo');
-let listTodo = document.getElementById('listTodo');
-let alertTask = document.getElementById('taskData');
+/**
+ * Taskify — task list with client-side persistence (localStorage).
+ * Preserves original flows: add, double-click to edit, checkbox, delete.
+ */
 
-//update display complete task on body click
-document.body.addEventListener('click', function(){
-	loadData();
-});
+const STORAGE_TASKS = 'taskify.tasks.v1';
+const STORAGE_THEME = 'taskify.theme.v1';
 
-//function display completed task
-const loadData = () => {
-	let taskCount = listTodo.childElementCount;
-	let completed = listTodo.children;
-	let countComplete = 0;
-	for(let value of completed){
-		let firstDiv = value.children;
-		for(let crashedout of firstDiv){
-			if (crashedout.nodeName === 'LABEL') {
-				if(crashedout.parentNode.firstChild.nextSibling.style.textDecoration === 'line-through'){
-					countComplete++;
-				}
-			}
-		}
-	}
-	alertTask.innerHTML = `Task Completed: ${countComplete}/${taskCount}`;
+const listTodo = document.getElementById('listTodo');
+const inpTodo = document.getElementById('inpTodo');
+const addTaskForm = document.getElementById('addTaskForm');
+const alertTask = document.getElementById('taskData');
+const emptyState = document.getElementById('emptyState');
+const taskFeedback = document.getElementById('taskFeedback');
+const clearCompletedBtn = document.getElementById('clearCompleted');
+const themeToggle = document.getElementById('themeToggle');
+
+/** @type {{ id: string, text: string, completed: boolean }[]} */
+let tasks = [];
+
+function uid() {
+	return typeof crypto !== 'undefined' && crypto.randomUUID
+		? crypto.randomUUID()
+		: `t-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
-//add task when button click
-btnTodo.addEventListener('click', function(){
-	//checks if input is empty or not
-	if(inpTodo.value.trim()){
-		addTask(inpTodo.value.trim());
-	}
-	else{
-		alert('Please enter a task');
-		inpTodo.value = "";
-		inpTodo.focus();
-	}
-});
 
-//add task when user clicks the enter button on keyboard
-inpTodo.addEventListener("keyup", function(event) {
-  // Number 13 is the "Enter" key on the keyboard
-  if (event.keyCode === 13) {
-    // Trigger the button element with a click
-    btnTodo.click();
-  }
-});
-
-//checks for double click in the task list
-listTodo.addEventListener('dblclick', function(ev){
-	//checks if double click is on the label only and converts it to input text
-	if(ev.target.nodeName === 'LABEL'){
-		if(ev.target.previousSibling.firstChild.checked) {
-			alert('Task is already completed');
-		} else {
-			//enable update if task is not yet completed
-			let task = ev.target.innerHTML
-			let inpTaskUpdate = document.createElement('input');
-			inpTaskUpdate.value = task;
-			inpTaskUpdate.className = ev.target.className;
-			ev.target.parentNode.replaceChild(inpTaskUpdate, ev.target);
-			ev.target.focus();
-			//updates the to do task
-			inpTaskUpdate.addEventListener('focusout', (ev) => {
-				if(ev.target.value){
-					let taskUpdated = ev.target.value.trim();
-					let taskUpdatedLbl = document.createElement('label');
-					taskUpdatedLbl.innerHTML = taskUpdated;
-					taskUpdatedLbl.className = ev.target.className;
-					ev.target.parentNode.replaceChild(taskUpdatedLbl, ev.target);
-				} else {
-					ev.target.focus();
-					ev.target.placeholder = "Please update task";
-				}
-		});
+function loadTasksFromStorage() {
+	try {
+		const raw = localStorage.getItem(STORAGE_TASKS);
+		if (!raw) return [];
+		const parsed = JSON.parse(raw);
+		if (!Array.isArray(parsed)) return [];
+		return parsed
+			.filter(
+				(t) =>
+					t &&
+					typeof t.id === 'string' &&
+					typeof t.text === 'string' &&
+					typeof t.completed === 'boolean',
+			)
+			.map((t) => ({
+				id: t.id,
+				text: t.text.slice(0, 500),
+				completed: Boolean(t.completed),
+			}));
+	} catch {
+		return [];
 	}
 }
-});
 
-//checks if the list is click
-listTodo.addEventListener('click', function(ev){
-	//adds and removes line-through if user click checkbox
-	if(ev.target.type === 'checkbox'){
-		if(ev.target.checked){
-			ev.target.parentNode.nextElementSibling.style.textDecoration = 'line-through';
-		}
-		else{
-			ev.target.parentNode.nextElementSibling.style.textDecoration = 'none';
-		}		
+function persistTasks() {
+	try {
+		localStorage.setItem(STORAGE_TASKS, JSON.stringify(tasks));
+	} catch {
+		showFeedback('Could not save tasks. Your browser storage may be full or disabled.');
 	}
-	//deletes the task if the delete button is clicked
-	else if(ev.target.type === 'submit'){
-		ev.target.parentElement.remove();
-		
-	}
-});
+}
 
-//add to do task function
-function addTask(task){
-	// add li element
-	let taskName = document.createElement('li');
-	taskName.className = "input-group";
-	// add div element then append input checkbox
-	let divInputCheckbox = document.createElement('div');
-	divInputCheckbox.className = "div-input-checkbox";
-	let checkBox = document.createElement('input');
-	checkBox.type = "checkbox";
-	
-	listTodo.appendChild(taskName);
-	taskName.appendChild(divInputCheckbox);
+function showFeedback(message) {
+	taskFeedback.textContent = message;
+	taskFeedback.hidden = false;
+	clearTimeout(showFeedback._t);
+	showFeedback._t = setTimeout(() => {
+		taskFeedback.hidden = true;
+		taskFeedback.textContent = '';
+	}, 4000);
+}
+
+function getExplicitTheme() {
+	const v = localStorage.getItem(STORAGE_THEME);
+	return v === 'light' || v === 'dark' ? v : null;
+}
+
+function resolveTheme() {
+	const explicit = getExplicitTheme();
+	if (explicit) return explicit;
+	return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function applyTheme(theme) {
+	document.documentElement.setAttribute('data-theme', theme);
+	themeToggle.setAttribute(
+		'aria-label',
+		theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme',
+	);
+}
+
+function syncTheme() {
+	applyTheme(resolveTheme());
+}
+
+function initTheme() {
+	syncTheme();
+	window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+		if (!getExplicitTheme()) syncTheme();
+	});
+	themeToggle.addEventListener('click', () => {
+		const current = resolveTheme();
+		const next = current === 'dark' ? 'light' : 'dark';
+		localStorage.setItem(STORAGE_THEME, next);
+		applyTheme(next);
+	});
+}
+
+function ensureStatsText() {
+	let el = alertTask.querySelector('.stats-panel__text');
+	if (!el) {
+		el = document.createElement('span');
+		el.className = 'stats-panel__text';
+		alertTask.appendChild(el);
+	}
+	return el;
+}
+
+function updateStats() {
+	const total = tasks.length;
+	const done = tasks.filter((t) => t.completed).length;
+	const el = ensureStatsText();
+	if (total === 0) {
+		el.textContent = 'No tasks yet.';
+	} else {
+		el.textContent = `Completed ${done} of ${total}`;
+	}
+	emptyState.hidden = total > 0;
+	listTodo.hidden = total === 0;
+
+	const completedCount = tasks.filter((t) => t.completed).length;
+	clearCompletedBtn.hidden = completedCount === 0;
+}
+
+function render() {
+	listTodo.innerHTML = '';
+	for (const task of tasks) {
+		listTodo.appendChild(createTaskRow(task));
+	}
+	updateStats();
+	persistTasks();
+}
+
+function createTaskRow(task) {
+	const li = document.createElement('li');
+	li.className = 'task-row input-group';
+	li.dataset.taskId = task.id;
+
+	const divInputCheckbox = document.createElement('div');
+	divInputCheckbox.className = 'div-input-checkbox';
+
+	const checkBox = document.createElement('input');
+	checkBox.type = 'checkbox';
+	checkBox.checked = task.completed;
+	checkBox.setAttribute('aria-label', `Complete: ${task.text}`);
+
+	const taskLabel = document.createElement('label');
+	taskLabel.className = 'form-control task-label';
+	if (task.completed) taskLabel.classList.add('task-label--done');
+	taskLabel.textContent = task.text;
+
+	const taskBtn = document.createElement('button');
+	taskBtn.type = 'button';
+	taskBtn.className = 'btn btn-delete';
+	taskBtn.setAttribute('aria-label', `Delete: ${task.text}`);
+	taskBtn.innerHTML = '<span aria-hidden="true">×</span>';
+
+	li.appendChild(divInputCheckbox);
 	divInputCheckbox.appendChild(checkBox);
-	
-	let taskLabel = document.createElement('label');
-	taskLabel.className = "form-control";
-	let labelText = document.createTextNode(task);
-	taskLabel.appendChild(labelText);
-	taskName.appendChild(taskLabel);
-	let taskBtn = document.createElement('input');
-	taskBtn.type = "submit";
-	taskBtn.value = "Delete";
-	taskBtn.className = "btn-delete";
-	taskName.appendChild(taskBtn);
-	
-	//clears input text and sets focus
-	inpTodo.value = "";
+	li.appendChild(taskLabel);
+	li.appendChild(taskBtn);
+
+	return li;
+}
+
+function addTask(text) {
+	tasks.push({ id: uid(), text, completed: false });
+	render();
+	inpTodo.value = '';
 	inpTodo.focus();
-	
+}
+
+addTaskForm.addEventListener('submit', (e) => {
+	e.preventDefault();
+	const value = inpTodo.value.trim();
+	if (!value) {
+		showFeedback('Enter a task description first.');
+		inpTodo.focus();
+		return;
+	}
+	addTask(value);
+});
+
+listTodo.addEventListener('change', (ev) => {
+	const target = ev.target;
+	if (target.type !== 'checkbox') return;
+	const row = target.closest('.task-row');
+	if (!row) return;
+	const id = row.dataset.taskId;
+	const task = tasks.find((t) => t.id === id);
+	if (!task) return;
+	task.completed = target.checked;
+	const label = row.querySelector('.task-label');
+	if (label) {
+		label.classList.toggle('task-label--done', task.completed);
+	}
+	updateStats();
+	persistTasks();
+});
+
+listTodo.addEventListener('click', (ev) => {
+	const btn = ev.target.closest('.btn-delete');
+	if (!btn) return;
+	const row = btn.closest('.task-row');
+	if (!row) return;
+	const id = row.dataset.taskId;
+	tasks = tasks.filter((t) => t.id !== id);
+	render();
+});
+
+listTodo.addEventListener('dblclick', (ev) => {
+	const label = ev.target.closest('.task-label');
+	if (!label || label.querySelector('input')) return;
+	const row = label.closest('.task-row');
+	if (!row) return;
+	const id = row.dataset.taskId;
+	const task = tasks.find((t) => t.id === id);
+	if (!task || task.completed) {
+		showFeedback('Completed tasks cannot be renamed. Uncheck the box first.');
+		return;
+	}
+
+	const previous = task.text;
+	const inpTaskUpdate = document.createElement('input');
+	inpTaskUpdate.type = 'text';
+	inpTaskUpdate.className = label.className.replace('task-label--done', '').trim();
+	inpTaskUpdate.value = previous;
+	inpTaskUpdate.setAttribute('aria-label', 'Edit task');
+	label.replaceWith(inpTaskUpdate);
+
+	requestAnimationFrame(() => {
+		inpTaskUpdate.focus();
+		inpTaskUpdate.select();
+	});
+
+	let settled = false;
+
+	function finish(save) {
+		if (settled) return;
+		settled = true;
+		const raw = inpTaskUpdate.value;
+		inpTaskUpdate.replaceWith(label);
+		if (save) {
+			const next = raw.trim();
+			if (!next) {
+				label.textContent = previous;
+				showFeedback('Task text cannot be empty.');
+				return;
+			}
+			task.text = next.slice(0, 500);
+			label.textContent = task.text;
+			persistTasks();
+		} else {
+			label.textContent = previous;
+		}
+	}
+
+	inpTaskUpdate.addEventListener('keydown', (e) => {
+		if (e.key === 'Escape') {
+			e.preventDefault();
+			finish(false);
+		} else if (e.key === 'Enter') {
+			e.preventDefault();
+			finish(true);
+		}
+	});
+
+	inpTaskUpdate.addEventListener('focusout', () => {
+		if (!inpTaskUpdate.isConnected || settled) return;
+		const next = inpTaskUpdate.value.trim();
+		if (!next) {
+			inpTaskUpdate.focus();
+			inpTaskUpdate.placeholder = 'Task cannot be empty';
+			return;
+		}
+		finish(true);
+	});
+});
+
+clearCompletedBtn.addEventListener('click', () => {
+	const before = tasks.length;
+	tasks = tasks.filter((t) => !t.completed);
+	if (tasks.length !== before) render();
+});
+
+function bootstrap() {
+	tasks = loadTasksFromStorage();
+	initTheme();
+	ensureStatsText();
+
+	if (tasks.length) {
+		render();
+	} else {
+		updateStats();
+	}
+	inpTodo.focus();
+}
+
+if (document.readyState === 'loading') {
+	document.addEventListener('DOMContentLoaded', bootstrap);
+} else {
+	bootstrap();
 }

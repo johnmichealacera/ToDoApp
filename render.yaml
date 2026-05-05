@@ -1,8 +1,12 @@
+# Render Blueprint — https://docs.render.com/blueprint-spec
+# Connect the repo in the Render dashboard and deploy as a Blueprint, or create a Web Service with Docker.
+
 services:
-  - name: todoapp
-    image: todoapp
-    envVars:
-      - key: ENVIRONMENT_VARIABLE_NAME
-        value: ENVIRONMENT_VARIABLE_VALUE
-    httpPort: 3000
-    internalPort: 80
+  - type: web
+    name: taskify
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /
