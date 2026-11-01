@@ -1,9 +1,8 @@
 /**
- * Taskify — task list with client-side persistence (localStorage).
+ * Taskify — task list persisted in localStorage (local mode) or the Taskify API on AWS (cloud mode).
  * Preserves original flows: add, double-click to edit, checkbox, delete.
  */
 
-const STORAGE_TASKS = 'taskify.tasks.v1';
 const STORAGE_THEME = 'taskify.theme.v1';
 
 const listTodo = document.getElementById('listTodo');
@@ -18,42 +17,32 @@ const themeToggle = document.getElementById('themeToggle');
 /** @type {{ id: string, text: string, completed: boolean }[]} */
 let tasks = [];
 
+const store = createTaskStore(() => tasks);
+
 function uid() {
 	return typeof crypto !== 'undefined' && crypto.randomUUID
 		? crypto.randomUUID()
 		: `t-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function loadTasksFromStorage() {
+async function reloadTasks() {
 	try {
-		const raw = localStorage.getItem(STORAGE_TASKS);
-		if (!raw) return [];
-		const parsed = JSON.parse(raw);
-		if (!Array.isArray(parsed)) return [];
-		return parsed
-			.filter(
-				(t) =>
-					t &&
-					typeof t.id === 'string' &&
-					typeof t.text === 'string' &&
-					typeof t.completed === 'boolean',
-			)
-			.map((t) => ({
-				id: t.id,
-				text: t.text.slice(0, 500),
-				completed: Boolean(t.completed),
-			}));
-	} catch {
-		return [];
+		tasks = await store.load();
+	} catch (err) {
+		showFeedback(err.message);
 	}
+	render();
 }
 
-function persistTasks() {
-	try {
-		localStorage.setItem(STORAGE_TASKS, JSON.stringify(tasks));
-	} catch {
-		showFeedback('Could not save tasks. Your browser storage may be full or disabled.');
-	}
+let pendingSave = Promise.resolve();
+
+// The screen is already updated (optimistic). Saves run one at a time so the API sees them in order;
+// on failure tell the user and, in cloud mode, re-sync from the server.
+function persist(save) {
+	pendingSave = pendingSave.then(save).catch((err) => {
+		showFeedback(err.message);
+		if (store.remote) return reloadTasks();
+	});
 }
 
 function showFeedback(message) {
@@ -134,7 +123,6 @@ function render() {
 		listTodo.appendChild(createTaskRow(task));
 	}
 	updateStats();
-	persistTasks();
 }
 
 function createTaskRow(task) {
@@ -170,8 +158,10 @@ function createTaskRow(task) {
 }
 
 function addTask(text) {
-	tasks.push({ id: uid(), text, completed: false });
+	const task = { id: uid(), text, completed: false };
+	tasks.push(task);
 	render();
+	persist(() => store.add(task));
 	inpTodo.value = '';
 	inpTodo.focus();
 }
@@ -201,7 +191,7 @@ listTodo.addEventListener('change', (ev) => {
 		label.classList.toggle('task-label--done', task.completed);
 	}
 	updateStats();
-	persistTasks();
+	persist(() => store.update(id, { completed: task.completed }));
 });
 
 listTodo.addEventListener('click', (ev) => {
@@ -212,6 +202,7 @@ listTodo.addEventListener('click', (ev) => {
 	const id = row.dataset.taskId;
 	tasks = tasks.filter((t) => t.id !== id);
 	render();
+	persist(() => store.remove(id));
 });
 
 listTodo.addEventListener('dblclick', (ev) => {
@@ -255,7 +246,7 @@ listTodo.addEventListener('dblclick', (ev) => {
 			}
 			task.text = next.slice(0, 500);
 			label.textContent = task.text;
-			persistTasks();
+			persist(() => store.update(id, { text: task.text }));
 		} else {
 			label.textContent = previous;
 		}
@@ -286,20 +277,16 @@ listTodo.addEventListener('dblclick', (ev) => {
 clearCompletedBtn.addEventListener('click', () => {
 	const before = tasks.length;
 	tasks = tasks.filter((t) => !t.completed);
-	if (tasks.length !== before) render();
+	if (tasks.length === before) return;
+	render();
+	persist(() => store.clearCompleted());
 });
 
-function bootstrap() {
-	tasks = loadTasksFromStorage();
+async function bootstrap() {
 	initTheme();
-	ensureStatsText();
-
-	if (tasks.length) {
-		render();
-	} else {
-		updateStats();
-	}
+	ensureStatsText().textContent = store.remote ? 'Loading tasks…' : 'No tasks yet.';
 	inpTodo.focus();
+	await reloadTasks();
 }
 
 if (document.readyState === 'loading') {

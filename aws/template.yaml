@@ -1,0 +1,97 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Taskify on AWS - serverless tasks API
+
+Parameters:
+  AllowedOrigins:
+    Type: CommaDelimitedList
+    Default: http://localhost:8080
+    Description: Web origins allowed to call the API (CORS)
+
+Globals:
+  Function:
+    Runtime: nodejs22.x
+    Architectures: [arm64]
+    MemorySize: 256
+    Timeout: 5
+    Tags:
+      project: todo
+
+Resources:
+  TasksTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: taskify-tasks
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: taskId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: taskId
+          KeyType: RANGE
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: 2
+        WriteCapacityUnits: 2
+      Tags:
+        - Key: project
+          Value: todo
+
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins: !Ref AllowedOrigins
+        AllowMethods: [GET, POST, PATCH, DELETE]
+        AllowHeaders: [content-type, authorization]
+        MaxAge: 600
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 20
+        ThrottlingRateLimit: 10
+      Tags:
+        project: todo
+
+  TasksFunctionLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/taskify-api
+      RetentionInDays: 7
+
+  TasksFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: TasksFunctionLogs
+    Properties:
+      FunctionName: taskify-api
+      CodeUri: backend/
+      Handler: index.handler
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TasksTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TasksTable
+      Events:
+        ListTasks:
+          Type: HttpApi
+          Properties: { ApiId: !Ref HttpApi, Path: /tasks, Method: GET }
+        CreateTask:
+          Type: HttpApi
+          Properties: { ApiId: !Ref HttpApi, Path: /tasks, Method: POST }
+        ClearCompleted:
+          Type: HttpApi
+          Properties: { ApiId: !Ref HttpApi, Path: /tasks, Method: DELETE }
+        UpdateTask:
+          Type: HttpApi
+          Properties: { ApiId: !Ref HttpApi, Path: '/tasks/{id}', Method: PATCH }
+        DeleteTask:
+          Type: HttpApi
+          Properties: { ApiId: !Ref HttpApi, Path: '/tasks/{id}', Method: DELETE }
+
+Outputs:
+  ApiUrl:
+    Value: !Sub https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com
+  TableName:
+    Value: !Ref TasksTable
