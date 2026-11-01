@@ -1,0 +1,14 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "taskify-api"
+resolve_s3 = true
+s3_prefix = "taskify-api"
+region = "ap-southeast-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "AllowedOrigins=\"http://localhost:8080\""
+image_repositories = []
+
+[default.global.parameters]
+region = "ap-southeast-1"
