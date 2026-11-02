@@ -13,11 +13,18 @@ const emptyState = document.getElementById('emptyState');
 const taskFeedback = document.getElementById('taskFeedback');
 const clearCompletedBtn = document.getElementById('clearCompleted');
 const themeToggle = document.getElementById('themeToggle');
+const authButton = document.getElementById('authButton');
+const accountEmail = document.getElementById('accountEmail');
+const signedOutPanel = document.getElementById('signedOut');
+const signInCta = document.getElementById('signInCta');
+const taskArea = document.getElementById('taskArea');
 
 /** @type {{ id: string, text: string, completed: boolean }[]} */
 let tasks = [];
 
-const store = createTaskStore(() => tasks);
+const config = window.TASKIFY_CONFIG || {};
+const auth = createAuth(config);
+const store = createTaskStore(config, auth, () => tasks);
 
 function uid() {
 	return typeof crypto !== 'undefined' && crypto.randomUUID
@@ -25,11 +32,31 @@ function uid() {
 		: `t-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function renderAuth() {
+	if (!auth.enabled) return;
+	const signedIn = auth.isSignedIn();
+	authButton.hidden = false;
+	authButton.textContent = signedIn ? 'Sign out' : 'Sign in';
+	accountEmail.textContent = signedIn ? auth.email() : '';
+	accountEmail.hidden = !signedIn;
+	signedOutPanel.hidden = signedIn;
+	taskArea.hidden = !signedIn;
+}
+
+function handleSessionExpired(err) {
+	if (!err.sessionExpired) return false;
+	tasks = [];
+	render();
+	renderAuth();
+	showFeedback(err.message);
+	return true;
+}
+
 async function reloadTasks() {
 	try {
 		tasks = await store.load();
 	} catch (err) {
-		showFeedback(err.message);
+		if (!handleSessionExpired(err)) showFeedback(err.message);
 	}
 	render();
 }
@@ -40,6 +67,7 @@ let pendingSave = Promise.resolve();
 // on failure tell the user and, in cloud mode, re-sync from the server.
 function persist(save) {
 	pendingSave = pendingSave.then(save).catch((err) => {
+		if (handleSessionExpired(err)) return;
 		showFeedback(err.message);
 		if (store.remote) return reloadTasks();
 	});
@@ -282,8 +310,20 @@ clearCompletedBtn.addEventListener('click', () => {
 	persist(() => store.clearCompleted());
 });
 
+authButton.addEventListener('click', () => (auth.isSignedIn() ? auth.signOut() : auth.signIn()));
+signInCta.addEventListener('click', () => auth.signIn());
+
 async function bootstrap() {
 	initTheme();
+	if (auth.enabled) {
+		try {
+			await auth.handleRedirect();
+		} catch (err) {
+			showFeedback(err.message);
+		}
+		renderAuth();
+		if (!auth.isSignedIn()) return;
+	}
 	ensureStatsText().textContent = store.remote ? 'Loading tasks…' : 'No tasks yet.';
 	inpTodo.focus();
 	await reloadTasks();

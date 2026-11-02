@@ -8,6 +8,11 @@ Parameters:
     Default: http://localhost:8080
     Description: Web origins allowed to call the API (CORS)
 
+  CallbackUrls:
+    Type: CommaDelimitedList
+    Default: http://localhost:8080/
+    Description: Where Cognito may send users after sign-in and sign-out
+
 Globals:
   Function:
     Runtime: nodejs22.x
@@ -39,6 +44,44 @@ Resources:
       Tags:
         - Key: project
           Value: todo
+  
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: taskify-users
+      UsernameAttributes: [email]
+      AutoVerifiedAttributes: [email]
+      UserPoolTier: LITE
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 10
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      UserPoolTags:
+        project: todo
+
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      UserPoolId: !Ref UserPool
+      Domain: !Sub taskify-${AWS::AccountId}
+      ManagedLoginVersion: 1
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPool
+      ClientName: taskify-web
+      GenerateSecret: false
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows: [code]
+      AllowedOAuthScopes: [openid, email]
+      SupportedIdentityProviders: [COGNITO]
+      CallbackURLs: !Ref CallbackUrls
+      LogoutURLs: !Ref CallbackUrls
+      PreventUserExistenceErrors: ENABLED
 
   HttpApi:
     Type: AWS::Serverless::HttpApi
@@ -51,6 +94,15 @@ Resources:
       DefaultRouteSettings:
         ThrottlingBurstLimit: 20
         ThrottlingRateLimit: 10
+      Auth:
+        DefaultAuthorizer: CognitoJwt
+        Authorizers:
+          CognitoJwt:
+            IdentitySource: $request.header.Authorization
+            JwtConfiguration:
+              issuer: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}
+              audience:
+                - !Ref UserPoolClient
       Tags:
         project: todo
 
@@ -95,3 +147,9 @@ Outputs:
     Value: !Sub https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com
   TableName:
     Value: !Ref TasksTable
+  UserPoolId:
+    Value: !Ref UserPool
+  ClientId:
+    Value: !Ref UserPoolClient
+  AuthDomain:
+    Value: !Sub https://taskify-${AWS::AccountId}.auth.${AWS::Region}.amazoncognito.com

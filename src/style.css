@@ -491,3 +491,56 @@ input[type='checkbox'] {
 		transform: none;
 	}
 }
+
+/* Account (cloud mode with sign-in) */
+[hidden] {
+	display: none !important;
+}
+
+.task-area {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	width: 100%;
+}
+
+.header-actions {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	flex-shrink: 0;
+}
+
+.account-email {
+	max-width: 14rem;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 0.8125rem;
+	color: var(--text-muted);
+}
+
+.btn-account {
+	border-radius: var(--radius-sm);
+	border: 1px solid var(--border);
+	background: var(--surface-elevated);
+	color: var(--text);
+	font-size: 0.875rem;
+}
+
+.btn-account:hover {
+	border-color: var(--focus);
+}
+
+.btn-standalone {
+	border-radius: var(--radius-sm);
+	margin-top: 0.75rem;
+}
+
+@media (max-width: 480px) {
+	.account-email {
+		display: none;
+	}
+}

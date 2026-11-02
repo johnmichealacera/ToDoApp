@@ -10,10 +10,13 @@ out() {
 }
 
 API_URL=$(out ApiUrl)
+AUTH_DOMAIN=$(out AuthDomain); [ "$AUTH_DOMAIN" = "None" ] && AUTH_DOMAIN=""
+CLIENT_ID=$(out ClientId); [ "$CLIENT_ID" = "None" ] && CLIENT_ID=""
 DIR=$(mktemp -d)
 trap 'rm -rf "$DIR"' EXIT
 cp -r src/. "$DIR"/
-printf 'window.TASKIFY_CONFIG = { apiUrl: "%s" };\n' "$API_URL" > "$DIR/config.js"
+printf 'window.TASKIFY_CONFIG = { apiUrl: "%s", authDomain: "%s", clientId: "%s" };\n' \
+  "$API_URL" "$AUTH_DOMAIN" "$CLIENT_ID" > "$DIR/config.js"
 
 echo "Cloud mode → $API_URL"
 echo "Open http://localhost:8080 (Ctrl+C to stop)"

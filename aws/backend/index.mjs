@@ -21,7 +21,7 @@ const json = (statusCode, body) => ({
 const toTask = (item) => ({ id: item.taskId, text: item.text, completed: item.completed });
 
 function userIdOf(event) {
-  return event.requestContext.authorizer?.jwt?.claims?.sub ?? "demo";
+  return event.requestContext.authorizer?.jwt?.claims?.sub;
 }
 
 function readText(value) {
@@ -114,6 +114,7 @@ async function route(event, userId, body) {
 
 export const handler = async (event) => {
   const userId = userIdOf(event);
+  if (!userId) return json(401, { message: "sign in first" });
   let body;
   try {
     body = readBody(event);

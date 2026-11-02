@@ -1,7 +1,7 @@
 /**
  * Task storage. Two interchangeable stores with the same methods:
  * load(), add(task), update(id, changes), remove(id), clearCompleted().
- * window.TASKIFY_CONFIG.apiUrl empty → localStorage (offline), set → Taskify API on AWS.
+ * config.apiUrl empty → localStorage (offline), set → Taskify API on AWS (with the Cognito token when sign-in is configured).
  */
 
 const STORAGE_TASKS = 'taskify.tasks.v1';
@@ -56,19 +56,26 @@ function createLocalStore(getTasks) {
 	};
 }
 
-function createApiStore(apiUrl) {
+function createApiStore(apiUrl, auth) {
 	const base = apiUrl.replace(/\/+$/, '');
 
-	async function request(method, path, body) {
-		let res;
+	async function send(method, path, body) {
+		const headers = {};
+		if (body) headers['content-type'] = 'application/json';
+		if (auth.enabled) headers.authorization = `Bearer ${await auth.accessToken()}`;
 		try {
-			res = await fetch(base + path, {
-				method,
-				headers: body ? { 'content-type': 'application/json' } : undefined,
-				body: body ? JSON.stringify(body) : undefined,
-			});
+			return await fetch(base + path, { method, headers, body: body ? JSON.stringify(body) : undefined });
 		} catch {
 			throw new Error('Could not reach the server. Check your connection and try again.');
+		}
+	}
+
+	async function request(method, path, body) {
+		let res = await send(method, path, body);
+		if (res.status === 401 && auth.enabled) {
+			await auth.refresh();
+			res = await send(method, path, body);
+			if (res.status === 401) throw new SessionExpiredError();
 		}
 		if (!res.ok) {
 			let detail = `server answered ${res.status}`;
@@ -78,7 +85,8 @@ function createApiStore(apiUrl) {
 			} catch {
 				// non-JSON error body: keep the status code
 			}
-			throw new Error(`Could not save your change (${detail}).`);
+			const action = method === 'GET' ? 'load your tasks' : 'save your change';
+			throw new Error(`Could not ${action} (${detail}).`);
 		}
 		return res.status === 204 ? null : res.json();
 	}
@@ -105,7 +113,6 @@ function createApiStore(apiUrl) {
 	};
 }
 
-function createTaskStore(getTasks) {
-	const config = window.TASKIFY_CONFIG || {};
-	return config.apiUrl ? createApiStore(config.apiUrl) : createLocalStore(getTasks);
+function createTaskStore(config, auth, getTasks) {
+	return config.apiUrl ? createApiStore(config.apiUrl, auth) : createLocalStore(getTasks);
 }

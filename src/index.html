@@ -16,17 +16,28 @@
 				<h1 class="app-title">Taskify</h1>
 				<p class="app-tagline">Your day, one task at a time.</p>
 			</div>
-			<button type="button" class="theme-toggle" id="themeToggle" aria-label="Switch color theme" title="Theme">
-				<span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true">☀</span>
-				<span class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true">☽</span>
-			</button>
+			<div class="header-actions">
+				<span class="account-email" id="accountEmail" hidden></span>
+				<button type="button" class="btn btn-account" id="authButton" hidden>Sign in</button>
+				<button type="button" class="theme-toggle" id="themeToggle" aria-label="Switch color theme" title="Theme">
+					<span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true">☀</span>
+					<span class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true">☽</span>
+				</button>
+			</div>
 		</header>
 
+		<p class="feedback" id="taskFeedback" role="alert" aria-live="assertive" hidden></p>
+
+		<section class="empty-state signed-out" id="signedOut" hidden>
+			<p class="empty-state__title">Your tasks, on every device</p>
+			<p class="empty-state__body">Sign in or create a free account to keep your list in the cloud.</p>
+			<button type="button" class="btn btn-primary btn-standalone" id="signInCta">Sign in or sign up</button>
+		</section>
+
+		<div class="task-area" id="taskArea">
 		<section class="stats-panel" id="taskData" role="status" aria-live="polite">
 			<span class="stats-panel__text">No tasks yet.</span>
 		</section>
-
-		<p class="feedback" id="taskFeedback" role="alert" aria-live="assertive" hidden></p>
 
 		<form class="add-task" id="addTaskForm" novalidate>
 			<label class="visually-hidden" for="inpTodo">New task</label>
@@ -55,8 +66,10 @@
 		<footer class="app-footer">
 			<button type="button" class="btn btn-ghost btn-sm" id="clearCompleted" hidden>Clear completed</button>
 		</footer>
+		</div>
 	</main>
 	<script src="config.js"></script>
+	<script src="auth.js"></script>
 	<script src="store.js"></script>
 	<script src="app.js"></script>
 </body>
